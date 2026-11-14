@@ -83,7 +83,7 @@ export const OrderBookingModal: React.FC<OrderBookingModalProps> = ({
         deliveryFee,
         total: grandTotal,
         paymentMethod,
-        paymentStatus: paymentMethod === 'pod' ? 'pending' : 'paid',
+        paymentStatus: 'pending', // P0.3: Default to pending until payment webhook/transfer slip is verified
         fulfillmentStatus: 'new',
       });
 

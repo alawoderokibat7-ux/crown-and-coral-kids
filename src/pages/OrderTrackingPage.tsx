@@ -41,12 +41,15 @@ export const OrderTrackingPage: React.FC = () => {
 
     setHasSearched(true);
     const cleaned = inputCode.trim().toLowerCase();
-    const found = orders.find(
-      (o) =>
-        o.id.toLowerCase() === cleaned ||
-        o.phone.replace(/[^0-9]/g, '').includes(cleaned.replace(/[^0-9]/g, '')) ||
-        (o.waybillNumber && o.waybillNumber.toLowerCase().includes(cleaned))
-    );
+    const cleanedDigits = inputCode.replace(/[^0-9]/g, '');
+
+    // Secure exact lookup (P0.5: Secure tracking to protect customer privacy)
+    const found = orders.find((o) => {
+      const orderIdMatch = o.id.toLowerCase() === cleaned;
+      const waybillMatch = o.waybillNumber ? o.waybillNumber.toLowerCase() === cleaned : false;
+      const phoneMatch = cleanedDigits.length >= 10 && o.phone.replace(/[^0-9]/g, '') === cleanedDigits;
+      return orderIdMatch || waybillMatch || phoneMatch;
+    });
 
     setSearchedOrder(found || null);
     if (found) {

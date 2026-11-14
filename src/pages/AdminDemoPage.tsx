@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   TrendingUp, 
   ShoppingBag, 
@@ -26,13 +26,17 @@ import {
   FileText,
   ExternalLink,
   ChevronRight,
-  Filter
+  Filter,
+  Database,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 import { useOrders, StoreOrder, PaymentStatus, FulfillmentStatus } from '../context/OrdersContext';
 import { useSupport } from '../context/SupportContext';
 import { formatPrice } from '../utils/formatters';
 import { DEMO_PRODUCTS } from '../data/products';
 import SpotlightCard from '../components/ui/SpotlightCard';
+import { supabase, logAuditEvent } from '../lib/supabaseClient';
 
 export const AdminDemoPage: React.FC = () => {
   const { 
@@ -40,17 +44,48 @@ export const AdminDemoPage: React.FC = () => {
     updatePaymentStatus, 
     updateFulfillmentStatus, 
     deleteOrder, 
-    addOrder 
+    addOrder,
+    refreshOrders
   } = useOrders();
 
-  const { tickets, updateTicketStatus, deleteTicket, unreadCount } = useSupport();
+  const { tickets, updateTicketStatus, deleteTicket, unreadCount, refreshTickets } = useSupport();
 
-  // Admin Passcode Protection (Default PIN: 1234 or Rocky)
+  // Admin Authentication State (Supabase Auth & Session - P0.1)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('little_nest_admin_auth') === 'true';
+    return localStorage.getItem('crown_coral_admin_auth') === 'true';
   });
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(() => {
+    return localStorage.getItem('crown_coral_admin_email') || null;
+  });
+  const [authTab, setAuthTab] = useState<'supabase' | 'demo'>('supabase');
+  const [emailInput, setEmailInput] = useState('alawoderokibat7@gmail.com');
+  const [passwordInput, setPasswordInput] = useState('CrownCoral2026!');
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setIsAuthenticated(true);
+        setCurrentUserEmail(session.user.email || null);
+        localStorage.setItem('crown_coral_admin_auth', 'true');
+        if (session.user.email) localStorage.setItem('crown_coral_admin_email', session.user.email);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsAuthenticated(true);
+        setCurrentUserEmail(session.user.email || null);
+        localStorage.setItem('crown_coral_admin_auth', 'true');
+        if (session.user.email) localStorage.setItem('crown_coral_admin_email', session.user.email);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Active View Tab: 'orders' | 'financials' | 'dispatch' | 'support'
   const [activeTab, setActiveTab] = useState<'orders' | 'financials' | 'dispatch' | 'support'>('orders');
@@ -78,20 +113,57 @@ export const AdminDemoPage: React.FC = () => {
   const [manualClientTier, setManualClientTier] = useState<'Crown VIP' | 'Atelier Member' | 'First-Time Client'>('Atelier Member');
   const [manualGiftWrapping, setManualGiftWrapping] = useState('Signature Blush Silk Box & Gold Ribbon');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSupabaseLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput === '1234' || pinInput.toLowerCase() === 'rocky') {
-      setIsAuthenticated(true);
-      localStorage.setItem('little_nest_admin_auth', 'true');
-      setPinError(false);
-    } else {
-      setPinError(true);
+    setIsLoggingIn(true);
+    setLoginError('');
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: emailInput.trim(),
+        password: passwordInput,
+      });
+
+      if (error) {
+        setLoginError(error.message);
+      } else if (data.user) {
+        setIsAuthenticated(true);
+        setCurrentUserEmail(data.user.email || null);
+        localStorage.setItem('crown_coral_admin_auth', 'true');
+        if (data.user.email) localStorage.setItem('crown_coral_admin_email', data.user.email);
+        await logAuditEvent('OWNER_LOGIN', 'auth', data.user.id, { email: data.user.email });
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || 'Authentication failed. Please verify credentials.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleDemoUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pinInput === '1234' || pinInput.toLowerCase() === 'rocky') {
+      setIsAuthenticated(true);
+      setCurrentUserEmail('rocky.demo@crowncoral.internal');
+      localStorage.setItem('crown_coral_admin_auth', 'true');
+      setPinError(false);
+      setLoginError('');
+    } else {
+      setPinError(true);
+      setLoginError('Incorrect PIN. For demo sandbox, enter 1234 or rocky');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Sign out:', e);
+    }
     setIsAuthenticated(false);
-    localStorage.removeItem('little_nest_admin_auth');
+    setCurrentUserEmail(null);
+    localStorage.removeItem('crown_coral_admin_auth');
+    localStorage.removeItem('crown_coral_admin_email');
   };
 
   // Filtered orders computation
@@ -195,51 +267,125 @@ export const AdminDemoPage: React.FC = () => {
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4 text-left">
-            <div>
-              <label className="block text-xs font-bold text-boutique-charcoal uppercase tracking-wider mb-1.5">
-                Atelier Master PIN / Passcode
-              </label>
-              <input
-                type="password"
-                placeholder="Enter PIN (e.g. 1234 or Rocky)"
-                value={pinInput}
-                onChange={(e) => {
-                  setPinInput(e.target.value);
-                  setPinError(false);
-                }}
-                className={`w-full px-4 py-3 rounded-xl text-sm bg-white/90 border ${
-                  pinError ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 focus:ring-boutique-rose'
-                } focus:outline-none focus:ring-2`}
-                autoFocus
-              />
-              {pinError && (
-                <span className="text-[11px] text-red-500 font-medium block mt-1">
-                  Incorrect PIN. Try 1234 or Rocky
-                </span>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="w-full btn-accent-primary py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2"
-            >
-              <Unlock className="w-4 h-4" />
-              <span>Unlock Executive Dashboard</span>
-            </button>
-          </form>
-
-          <div className="pt-2 text-center">
+          {/* Mode Switcher Pills */}
+          <div className="flex rounded-xl bg-gray-100 p-1 text-xs font-bold">
             <button
               type="button"
               onClick={() => {
-                setIsAuthenticated(true);
-                localStorage.setItem('little_nest_admin_auth', 'true');
+                setAuthTab('supabase');
+                setLoginError('');
               }}
-              className="text-[11px] font-semibold text-boutique-taupe hover:text-boutique-rose underline underline-offset-2"
+              className={`flex-1 py-1.5 rounded-lg transition ${
+                authTab === 'supabase'
+                  ? 'bg-white text-boutique-charcoal shadow-xs'
+                  : 'text-boutique-taupe hover:text-boutique-charcoal'
+              }`}
             >
-              Quick Unlock (1-Click Owner Sign In)
+              Supabase Auth (Production)
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthTab('demo');
+                setLoginError('');
+              }}
+              className={`flex-1 py-1.5 rounded-lg transition ${
+                authTab === 'demo'
+                  ? 'bg-white text-boutique-charcoal shadow-xs'
+                  : 'text-boutique-taupe hover:text-boutique-charcoal'
+              }`}
+            >
+              Demo Sandbox
+            </button>
+          </div>
+
+          {/* Tab 1: Supabase Email & Password Login */}
+          {authTab === 'supabase' ? (
+            <form onSubmit={handleSupabaseLogin} className="space-y-3.5 text-left">
+              <div>
+                <label className="block text-[11px] font-bold text-boutique-charcoal uppercase tracking-wider mb-1">
+                  Owner Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="alawoderokibat7@gmail.com"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-white/90 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-accent text-boutique-charcoal font-medium"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-boutique-charcoal uppercase tracking-wider mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="••••••••••••"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-white/90 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-accent text-boutique-charcoal font-medium"
+                  required
+                />
+              </div>
+
+              {loginError && (
+                <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-[11px] text-red-600 font-medium">
+                  {loginError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full btn-accent-primary py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-clay-pill disabled:opacity-60"
+              >
+                {isLoggingIn ? (
+                  <span>Authenticating...</span>
+                ) : (
+                  <>
+                    <Unlock className="w-4 h-4" />
+                    <span>Sign In With Supabase</span>
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            /* Tab 2: Demo Sandbox Fast Unlock */
+            <form onSubmit={handleDemoUnlock} className="space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-bold text-boutique-charcoal uppercase tracking-wider mb-1.5">
+                  Sandbox PIN
+                </label>
+                <input
+                  type="password"
+                  placeholder="Enter 1234 or rocky"
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl text-sm bg-white/90 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
+                  autoFocus
+                />
+                {loginError && (
+                  <span className="text-[11px] text-red-500 font-medium block mt-1">
+                    {loginError}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full btn-accent-primary py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-clay-pill"
+              >
+                <Unlock className="w-4 h-4" />
+                <span>Open Sandbox Workspace</span>
+              </button>
+            </form>
+          )}
+
+          <div className="pt-2 text-center border-t border-gray-100 flex items-center justify-center gap-2 text-[11px] text-boutique-taupe">
+            <Database className="w-3.5 h-3.5 text-accent" />
+            <span>PostgreSQL: <strong className="text-boutique-charcoal">niukwttwnulraczuyebs</strong></span>
           </div>
         </SpotlightCard>
       </div>
@@ -255,9 +401,13 @@ export const AdminDemoPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-800 text-[11px] font-bold border border-emerald-500/30">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Atelier Operations Live</span>
+              <span>PostgreSQL Live: niukwttwnulraczuyebs</span>
             </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-boutique-rose-light text-boutique-rose text-[10px] font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-accent/20 text-[#06281E] text-[10px] font-bold uppercase tracking-wider border border-accent/40">
+              <UserCheck className="w-3 h-3 text-accent" />
+              <span>{currentUserEmail || 'Rocky Alawode (Owner)'}</span>
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-boutique-taupe text-[10px] font-bold uppercase tracking-wider">
               RC: 1894201
             </span>
           </div>
@@ -265,14 +415,26 @@ export const AdminDemoPage: React.FC = () => {
             Crown & Coral Kids · Executive Operations Suite
           </h1>
           <p className="text-xs sm:text-sm text-boutique-taupe">
-            Benchmarked against Parisian couture standards (Bonpoint, Jacadi Paris) for client orders, payment reconciliations, and white-glove dispatch.
+            Centralized Supabase PostgreSQL architecture with Row Level Security (RLS) & transactional fulfillment management.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <button
+            onClick={() => {
+              refreshOrders();
+              refreshTickets();
+            }}
+            className="px-3 py-2.5 rounded-xl bg-white/80 hover:bg-white text-boutique-charcoal text-xs font-bold border border-gray-200 transition flex items-center gap-1.5 shadow-xs"
+            title="Refresh Database Records"
+          >
+            <Database className="w-3.5 h-3.5 text-accent" />
+            <span className="hidden sm:inline">Sync DB</span>
+          </button>
+
+          <button
             onClick={() => setIsManualOrderOpen(true)}
-            className="btn-accent-primary px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-md"
+            className="btn-accent-primary px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-clay-pill"
           >
             <Plus className="w-4 h-4" />
             <span>New Atelier Booking</span>
@@ -280,11 +442,11 @@ export const AdminDemoPage: React.FC = () => {
 
           <button
             onClick={handleLogout}
-            className="px-3.5 py-2.5 rounded-xl bg-white/70 hover:bg-white text-boutique-charcoal text-xs font-bold border border-gray-200 transition"
-            title="Lock Portal"
+            className="px-3.5 py-2.5 rounded-xl bg-white/70 hover:bg-red-50 hover:text-red-600 text-boutique-charcoal text-xs font-bold border border-gray-200 transition flex items-center gap-1"
+            title="Sign Out of Portal"
           >
-            <Lock className="w-4 h-4 inline mr-1" />
-            Lock
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
           </button>
         </div>
       </div>
