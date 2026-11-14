@@ -3,15 +3,15 @@
 > **Engineered by Rocky**  
 > An upscale children's clothing platform (Ages 1–13) featuring **instant Order Booking, SMS/receipt notifications, live 4-step delivery tracking, and Royal Emerald & Champagne Gold 3D Atmosphere**.
 > 
-> 🌐 **Live Website:** [https://little-nest-kids-boutique.pages.dev](https://little-nest-kids-boutique.pages.dev)  
+> 🌐 **Live Website:** [https://crown-and-coral-kids.alawoderokibat7.workers.dev](https://crown-and-coral-kids.alawoderokibat7.workers.dev)  
 > 📦 **GitHub Repository:** [https://github.com/alawoderokibat7-ux/crown-and-coral-kids](https://github.com/alawoderokibat7-ux/crown-and-coral-kids)
 
 ---
 
-## 📌 Project Location on Your Computer
-* **Project Folder:** `C:\Users\Rocky\Documents\little-nest-kids-boutique`
-* **Desktop Shortcut:** Double-click **`Little Nest Boutique Project`** on your Desktop.
+## 📌 Project Overview
+* **Brand:** Crown & Coral Kids (*The Royal Children's Atelier*)
 * **Running Local Server URL:** `http://127.0.0.1:5173/`
+* **Production Deployment:** Cloudflare Workers + Supabase PostgreSQL
 
 ---
 
@@ -19,15 +19,15 @@
 
 ### 1. Refined Minimal Luxury Design System
 * Clean typographic hierarchy with Playfair Display and Plus Jakarta Sans.
-* Focused accent color: **Parisian Rose-Coral (`#E1496B`)** with high-contrast deep charcoal (`#111827`).
-* Strict mathematical nested corner radiuses (`r_inner = r_outer - padding`).
+* Focused royal palette: **Deep Royal Emerald (`#0A231C`)**, **Spun Champagne Gold (`#D4AF37`)**, and **Parisian Rose-Coral (`#E26D5C`)**.
+* Mathematical nested corner radiuses (`r_inner = r_outer - padding`).
 * `tabular-nums` for rock-solid vertical alignment on all currency and numeric counters.
 
 ### 2. Express Order Booking & Live Delivery Tracking
-* Direct e-commerce checkout without forcing customers into WhatsApp chats.
+* Direct e-commerce checkout with transactional integrity.
 * Customer details: Name, Phone, Delivery City, and Address.
 * Payment modes: **Pay on Delivery (Cash/POS)**, **Bank Transfer**, or **Debit Card**.
-* Instant confirmation alert with **Order Reference ID (e.g. `#LN-9421`)**.
+* Instant confirmation alert with **Order Reference ID (e.g. `#CC-942101`)**.
 * **Live 4-Step Interactive Tracking Bar**:
   1. ✅ Order Placed
   2. 📦 Quality Inspection & Gift Boxing
@@ -36,8 +36,8 @@
 * Print & Download Receipt option.
 
 ### 3. Strict Gender Separation
-* **Girls' Collection**: Strictly filtered to girls' dresses, gowns, and accessories.
-* **Boys' Collection**: Strictly filtered to boys' tailored linen vests, velvet blazers, and dapper shirts.
+* **Princesses' Collection**: Strictly filtered to girls' dresses, gowns, and accessories.
+* **Princes' Collection**: Strictly filtered to boys' tailored linen vests, velvet blazers, and dapper shirts.
 
 ---
 
@@ -45,7 +45,6 @@
 
 ### Run on your laptop:
 ```bash
-cd "C:\Users\Rocky\Documents\little-nest-kids-boutique"
 npm run dev
 ```
 Open **`http://127.0.0.1:5173/`** in your browser.

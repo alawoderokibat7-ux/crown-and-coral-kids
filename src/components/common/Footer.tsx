@@ -35,8 +35,8 @@ export const Footer: React.FC = () => {
               <span>Royal Collections</span>
             </h5>
             <ul className="space-y-2.5 text-xs">
-              <li><Link to="/shop?gender=girls" className="hover:text-accent transition">Little Princesses (Gowns & Sets)</Link></li>
-              <li><Link to="/shop?gender=boys" className="hover:text-accent transition">Little Princes (Blazers & Linens)</Link></li>
+              <li><Link to="/shop?gender=girls" className="hover:text-accent transition">Princesses (Gowns & Sets)</Link></li>
+              <li><Link to="/shop?gender=boys" className="hover:text-accent transition">Princes (Blazers & Linens)</Link></li>
               <li><Link to="/shop?category=birthday" className="hover:text-accent transition">Sunday Best & Milestone Galas</Link></li>
               <li><Link to="/shop?category=baby" className="hover:text-accent transition">Royal Toddlers (1–3 yrs)</Link></li>
             </ul>

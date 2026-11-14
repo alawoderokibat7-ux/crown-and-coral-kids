@@ -634,7 +634,7 @@ export const AdminDemoPage: React.FC = () => {
             <div className="relative min-w-[260px]">
               <input
                 type="text"
-                placeholder="Search name, phone, LN-#, or Reference..."
+                placeholder="Search name, phone, CC-#, or Reference..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-xs bg-white/80 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-boutique-rose/30"

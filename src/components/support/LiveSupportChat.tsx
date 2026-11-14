@@ -395,7 +395,7 @@ export const LiveSupportChat: React.FC = () => {
 
               <div className="pt-2 border-t border-gray-100 text-center">
                 <a
-                  href="https://wa.me/2348000000000?text=Hello%20Little%20Nest%20Boutique%2C%20I%20have%20an%20urgent%20question."
+                  href="https://wa.me/2348000000000?text=Hello%20Crown%20%26%20Coral%20Kids%2C%20I%20have%20an%20urgent%20question."
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold hover:underline"
@@ -415,14 +415,14 @@ export const LiveSupportChat: React.FC = () => {
                   Live Order Tracker
                 </h4>
                 <p className="text-[11px] text-boutique-taupe mt-0.5">
-                  Enter your Order ID (e.g. <span className="font-mono font-bold">LN-942101</span>) or phone number.
+                  Enter your Order ID (e.g. <span className="font-mono font-bold">CC-942101</span>) or phone number.
                 </p>
               </div>
 
               <form onSubmit={handleWidgetTrack} className="space-y-2">
                 <input
                   type="text"
-                  placeholder="e.g. LN-942101 or 08034129001"
+                  placeholder="e.g. CC-942101 or 08034129001"
                   value={trackCode}
                   onChange={(e) => setTrackCode(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-boutique-rose"

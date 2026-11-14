@@ -2,7 +2,7 @@ import { Product } from '../types';
 
 export const DEMO_PRODUCTS: Product[] = [
   {
-    id: 'ln-001',
+    id: 'cc-001',
     name: 'Blossom Petal Tulle Party Dress',
     tagline: 'Delicate embroidered florals with layered organic soft tulle',
     category: 'dresses-partywear',
@@ -31,8 +31,8 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['birthday', 'dress', 'partywear', 'girls', 'wedding', 'ceremony', 'flower girl']
   },
   {
-    id: 'ln-002',
-    name: 'Little Gentleman Linen Vest & Chino Set',
+    id: 'cc-002',
+    name: 'Royal Heir Linen Vest & Chino Set',
     tagline: 'Tailored 3-piece formal ensemble in oat linen blend',
     category: 'boys',
     categoryLabel: "Boys' Collection",
@@ -60,7 +60,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['formal', 'boys', 'gentleman', 'linen', 'partywear', 'wedding', 'sunday best']
   },
   {
-    id: 'ln-003',
+    id: 'cc-003',
     name: 'Sage Garden Eyelet Midi Dress',
     tagline: 'Vintage-inspired puff sleeves with scalloped floral eyelet',
     category: 'girls',
@@ -86,7 +86,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['dresses', 'girls', 'sage', 'cotton', 'vintage', 'casual chic', 'school party']
   },
   {
-    id: 'ln-004',
+    id: 'cc-004',
     name: 'Coastal Sailor Knit Polo & Drawstring Shorts',
     tagline: 'Buttery-soft waffle knit set for effortless seaside chic',
     category: 'matching-sets',
@@ -113,7 +113,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['boys', 'sets', 'toddler', 'waffle knit', 'casual', 'playwear']
   },
   {
-    id: 'ln-005',
+    id: 'cc-005',
     name: 'Golden Honey Birthday Princess Gown',
     tagline: 'Opulent shimmer organza with hand-beaded neckline',
     category: 'birthday',
@@ -135,13 +135,13 @@ export const DEMO_PRODUCTS: Product[] = [
     isBestSeller: true,
     rating: 5.0,
     reviewsCount: 42,
-    description: 'Our showstopping birthday gown guaranteed to make your little girl feel like royalty on her special day. Features a subtle gold-threaded organza overlay and a removable oversized satin bow at the waist.',
+    description: 'Our showstopping birthday gown guaranteed to make your young princess feel like royalty on her special day. Features a subtle gold-threaded organza overlay and a removable oversized satin bow at the waist.',
     fabricDetails: 'Satin Silk Blend, Multi-layer Petticoat Tulle, Cotton Lining',
     careInstructions: ['Dry clean only', 'Keep hung in garment bag', 'Steam only'],
     tags: ['birthday', 'gown', 'partywear', 'girls', 'luxury', 'gold', 'photoshoot']
   },
   {
-    id: 'ln-006',
+    id: 'cc-006',
     name: 'Monogrammed Velvet Blazer & Trousers',
     tagline: 'Midnight navy plush velvet with satin lapel accents',
     category: 'boys',
@@ -168,7 +168,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['boys', 'formal', 'blazer', 'partywear', 'wedding', 'velvet', 'suit']
   },
   {
-    id: 'ln-007',
+    id: 'cc-007',
     name: 'Terra Rust Ruffle Linen Romper',
     tagline: 'Sun-drenched earthy tones with cross-back flutter frills',
     category: 'baby',
@@ -189,13 +189,13 @@ export const DEMO_PRODUCTS: Product[] = [
     isNewArrival: true,
     rating: 4.8,
     reviewsCount: 29,
-    description: 'The sweetest summer staple for little girls. Cut from softened washed linen with flutter shoulder frills and nickel-free inner snap gussets for breezy diaper changes.',
+    description: 'The sweetest summer staple for young royals. Cut from softened washed linen with flutter shoulder frills and nickel-free inner snap gussets for breezy diaper changes.',
     fabricDetails: '100% Pre-washed European Linen',
     careInstructions: ['Machine wash gentle 30°C', 'Hang dry in breeze', 'Iron optional'],
     tags: ['baby', 'romper', 'toddler', 'linen', 'girls', 'ruffle', 'gift']
   },
   {
-    id: 'ln-008',
+    id: 'cc-008',
     name: 'Sweet Violet Tiered Smocked Sundress',
     tagline: 'Hand-smocked bodice with pastel botanical bloom print',
     category: 'dresses-partywear',
@@ -215,13 +215,13 @@ export const DEMO_PRODUCTS: Product[] = [
     isFeatured: false,
     rating: 4.9,
     reviewsCount: 27,
-    description: 'An heirloom-quality smocked dress inspired by English cottage gardens. Hand-embroidered floral bullion roses along the stretchy smocked chest, accommodating growing little girls with grace.',
+    description: 'An heirloom-quality smocked dress inspired by English cottage gardens. Hand-embroidered floral bullion roses along the stretchy smocked chest, accommodating growing young royals with grace.',
     fabricDetails: '100% Superfine Organic Cotton Batiste',
     careInstructions: ['Gentle cycle cold', 'Warm iron on reverse of smocking'],
     tags: ['dresses', 'girls', 'smocked', 'floral', 'summer', 'sunday best']
   },
   {
-    id: 'ln-009',
+    id: 'cc-009',
     name: 'Brother & Sister Matching Olive Linen Duo',
     tagline: 'Coordinated sibling sets in muted Mediterranean olive',
     category: 'matching-sets',
@@ -249,7 +249,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['matching sets', 'sibling', 'brother sister', 'linen', 'photoshoot', 'olive']
   },
   {
-    id: 'ln-010',
+    id: 'cc-010',
     name: 'Rose Gold Leather Mary Jane Party Shoes',
     tagline: 'Handcrafted supple leather with non-slip flexible sole',
     category: 'shoes-accessories',
@@ -275,7 +275,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['shoes', 'accessories', 'girls', 'mary jane', 'partywear', 'leather']
   },
   {
-    id: 'ln-011',
+    id: 'cc-011',
     name: 'Oxford Blue Tailored Shirt & Suspenders Kit',
     tagline: 'Classic striped pinpoint oxford shirt with genuine leather suspenders',
     category: 'boys',
@@ -301,7 +301,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['boys', 'shirt', 'formal', 'suspenders', 'birthday', 'sunday']
   },
   {
-    id: 'ln-012',
+    id: 'cc-012',
     name: 'Ivory Satin Ribbon & Pearl Hair Bow Set (Pack of 3)',
     tagline: 'Hand-tied French grosgrain clips with mother-of-pearl center',
     category: 'shoes-accessories',
@@ -327,7 +327,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['accessories', 'hairbow', 'girls', 'clips', 'gift', 'under 10k']
   },
   {
-    id: 'ln-013',
+    id: 'cc-013',
     name: 'Pre-Teen Pleated Parisian Trench Coat',
     tagline: 'Water-repellent double-breasted coat with tortoiseshell belt',
     category: 'girls',
@@ -355,7 +355,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['girls', 'outerwear', 'trench', 'older kids', '10-13 years', 'luxury']
   },
   {
-    id: 'ln-014',
+    id: 'cc-014',
     name: 'Urban Explorer Bomber & Cargo Joggers Set',
     tagline: 'Structured fleece bomber with water-resistant knee patches',
     category: 'matching-sets',
@@ -381,7 +381,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['boys', 'sets', 'streetwear', 'casual', 'older kids', '10-13 years']
   },
   {
-    id: 'ln-015',
+    id: 'cc-015',
     name: 'Pure Cloud Cashmere-Touch Baby Cardigan',
     tagline: 'Ultra-gentle seamless knit with hand-carved wood toggles',
     category: 'baby',
@@ -407,7 +407,7 @@ export const DEMO_PRODUCTS: Product[] = [
     tags: ['baby', 'cardigan', 'knitwear', 'gift', 'unisex', 'toddler']
   },
   {
-    id: 'ln-016',
+    id: 'cc-016',
     name: 'Starlight Sparkle Birthday Confetti Tutu Skirt',
     tagline: 'Encapsulated metallic star sequins with adjustable lurex waistband',
     category: 'birthday',
@@ -445,14 +445,14 @@ export const CATEGORIES_LIST = [
 
 export const GENDER_FILTERS = [
   { id: 'all', label: 'All Royal Children' },
-  { id: 'girls', label: "Little Princesses" },
-  { id: 'boys', label: "Little Princes" },
+  { id: 'girls', label: "Royal Princesses" },
+  { id: 'boys', label: "Young Princes" },
 ];
 
 export const AGE_RANGES = [
   { id: 'all', label: 'All Ages' },
   { id: '1-3', label: 'Toddlers (1–3 yrs)', min: 1, max: 3 },
-  { id: '4-6', label: 'Little Kids (4–6 yrs)', min: 4, max: 6 },
+  { id: '4-6', label: 'Young Royals (4–6 yrs)', min: 4, max: 6 },
   { id: '7-9', label: 'Growing Royals (7–9 yrs)', min: 7, max: 9 },
   { id: '10-13', label: 'Pre-Teens (10–13 yrs)', min: 10, max: 13 },
 ];

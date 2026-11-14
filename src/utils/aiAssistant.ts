@@ -269,7 +269,7 @@ Note: In this client showcase demo, payment integrations and order confirmations
     } else if (targetAge && targetGender === 'boys') {
       intro += `Here are tailored boutique outfits crafted for a ${targetAge}-year-old young gentleman`;
     } else if (targetAge && targetGender !== 'all') {
-      intro += `Here are pieces selected for a ${targetAge}-year-old ${targetGender === 'girls' ? 'little lady' : 'young gentleman'}`;
+      intro += `Here are pieces selected for a ${targetAge}-year-old ${targetGender === 'girls' ? 'young princess' : 'young prince'}`;
     } else if (isMatching) {
       intro += "Here are our coordinated matching sets and sibling duos:";
     } else if (isBirthday) {

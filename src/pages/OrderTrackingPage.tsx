@@ -102,7 +102,7 @@ export const OrderTrackingPage: React.FC = () => {
           <div className="relative">
             <input
               type="text"
-              placeholder="e.g. LN-942101 or 08034129001"
+              placeholder="e.g. CC-942101 or 08034129001"
               value={inputCode}
               onChange={(e) => setInputCode(e.target.value)}
               className="w-full pl-11 pr-4 py-3.5 text-sm bg-white/90 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-boutique-rose/30 focus:border-boutique-rose text-boutique-charcoal font-medium shadow-xs"

@@ -36,7 +36,7 @@ export const HomePage: React.FC = () => {
                 </h1>
 
                 <p className="text-sm sm:text-base text-boutique-taupe max-w-xl leading-relaxed">
-                  Bespoke celebration outfits, Sunday best dresses, and tailored linen sets for little princes and princesses. White-glove delivery across Lagos and nationwide with pay-on-delivery options.
+                  Bespoke celebration outfits, Sunday best dresses, and tailored linen sets for young princes and princesses. White-glove delivery across Lagos and nationwide with pay-on-delivery options.
                 </p>
 
                 {/* Refined CTAs */}
@@ -96,7 +96,7 @@ export const HomePage: React.FC = () => {
                       </span>
                     </div>
                     <Link
-                      to="/product/ln-001"
+                      to="/product/cc-001"
                       className="px-3.5 py-1.5 rounded-xl bg-[#06281E] text-accent text-[11px] font-bold hover:bg-black transition border border-accent/40"
                     >
                       View Piece
@@ -178,7 +178,7 @@ export const HomePage: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           {[
             { label: 'Royal Toddlers', age: '1–3 Years', path: '/shop?age=1-3', desc: 'Rompers, bloomers & playwear', bg: 'hover:border-accent' },
-            { label: 'Little Royals', age: '4–6 Years', path: '/shop?age=4-6', desc: 'Birthday dresses & linen sets', bg: 'hover:border-accent' },
+            { label: 'Young Royals', age: '4–6 Years', path: '/shop?age=4-6', desc: 'Birthday dresses & linen sets', bg: 'hover:border-accent' },
             { label: 'Growing Princes & Princesses', age: '7–9 Years', path: '/shop?age=7-9', desc: 'Ceremony wear & blazers', bg: 'hover:border-accent' },
             { label: 'Pre-Teens', age: '10–13 Years', path: '/shop?age=10-13', desc: 'Formal wear & gala attire', bg: 'hover:border-accent' },
           ].map((item) => (

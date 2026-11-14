@@ -21,8 +21,8 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { label: 'All Collections', path: '/shop' },
-    { label: 'Little Princesses', path: '/shop?gender=girls' },
-    { label: 'Little Princes', path: '/shop?gender=boys' },
+    { label: 'Princesses', path: '/shop?gender=girls' },
+    { label: 'Princes', path: '/shop?gender=boys' },
     { label: 'Sunday Best & Galas', path: '/shop?category=birthday' },
     { label: 'Royal Occasions', path: '/shop?category=dresses-partywear' },
     { label: 'Track Order', path: '/track' },
