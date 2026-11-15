@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ShoppingBag, ArrowLeft, ChevronRight, Check } from 'lucide-react';
-import { DEMO_PRODUCTS } from '../data/products';
+import { Product } from '../types';
 import { formatPrice } from '../utils/formatters';
 import { useCart } from '../context/CartContext';
+import { useProducts } from '../context/ProductsContext';
 import { OrderBookingModal } from '../components/checkout/OrderBookingModal';
 import { ProductCard } from '../components/product/ProductCard';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
+  const { products, getProductStock } = useProducts();
 
-  const product = DEMO_PRODUCTS.find((p) => p.id === id);
+  const product = products.find((p) => p.id === id);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>('');
@@ -62,8 +64,8 @@ export const ProductDetailPage: React.FC = () => {
   };
 
   // Strictly gender-matched related items
-  const relatedProducts = DEMO_PRODUCTS.filter(
-    (p) => p.id !== product.id && 
+  const relatedProducts = products.filter(
+    (p: Product) => p.id !== product.id && 
            (p.gender === product.gender || p.gender === 'unisex') &&
            (p.category === product.category || p.ageRange === product.ageRange)
   ).slice(0, 4);
@@ -164,22 +166,41 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {product.availableSizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => {
-                        setSelectedSize(size);
-                        setSizeError(false);
-                      }}
-                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
-                        selectedSize === size
-                          ? 'bg-boutique-charcoal text-white shadow-xs font-bold'
-                          : 'bg-boutique-sand/40 text-boutique-taupe hover:bg-boutique-sand'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  {product.availableSizes.map((size) => {
+                    const stockForSize = getProductStock(product.id, size);
+                    const isOutOfStock = stockForSize <= 0;
+
+                    return (
+                      <button
+                        key={size}
+                        disabled={isOutOfStock}
+                        onClick={() => {
+                          if (isOutOfStock) return;
+                          setSelectedSize(size);
+                          setSizeError(false);
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition relative ${
+                          isOutOfStock
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through opacity-60'
+                            : selectedSize === size
+                            ? 'bg-boutique-charcoal text-white shadow-xs font-bold'
+                            : 'bg-boutique-sand/40 text-boutique-taupe hover:bg-boutique-sand'
+                        }`}
+                      >
+                        <span>{size}</span>
+                        {stockForSize > 0 && stockForSize <= 3 && (
+                          <span className="block text-[8px] text-amber-600 font-bold -mt-0.5">
+                            {stockForSize} left
+                          </span>
+                        )}
+                        {isOutOfStock && (
+                          <span className="block text-[8px] text-red-500 font-bold -mt-0.5">
+                            Sold Out
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {sizeError && (
@@ -272,7 +293,7 @@ export const ProductDetailPage: React.FC = () => {
             </Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-            {relatedProducts.map((p) => (
+            {relatedProducts.map((p: Product) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>

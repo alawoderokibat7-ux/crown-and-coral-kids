@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ProductsProvider } from './context/ProductsContext';
 import { CartProvider, useCart } from './context/CartContext';
 import { OrdersProvider } from './context/OrdersContext';
 import { SupportProvider } from './context/SupportContext';
@@ -86,13 +87,15 @@ export default function App() {
     <BrowserRouter>
       <SmoothScrollProvider>
         <AtmosphereProvider>
-          <OrdersProvider>
-            <SupportProvider>
-              <CartProvider>
-                <AppContent />
-              </CartProvider>
-            </SupportProvider>
-          </OrdersProvider>
+          <ProductsProvider>
+            <OrdersProvider>
+              <SupportProvider>
+                <CartProvider>
+                  <AppContent />
+                </CartProvider>
+              </SupportProvider>
+            </OrdersProvider>
+          </ProductsProvider>
         </AtmosphereProvider>
       </SmoothScrollProvider>
     </BrowserRouter>

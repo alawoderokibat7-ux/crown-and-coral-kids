@@ -29,10 +29,17 @@ import {
   Filter,
   Database,
   LogOut,
-  UserCheck
+  UserCheck,
+  Edit,
+  RefreshCw,
+  Layers,
+  Crown,
+  Tag
 } from 'lucide-react';
 import { useOrders, StoreOrder, PaymentStatus, FulfillmentStatus } from '../context/OrdersContext';
 import { useSupport } from '../context/SupportContext';
+import { useProducts, ProductVariant } from '../context/ProductsContext';
+import { Product, ProductCategory } from '../types';
 import { formatPrice } from '../utils/formatters';
 import { DEMO_PRODUCTS } from '../data/products';
 import SpotlightCard from '../components/ui/SpotlightCard';
@@ -87,26 +94,63 @@ export const AdminDemoPage: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Active View Tab: 'orders' | 'financials' | 'dispatch' | 'support'
-  const [activeTab, setActiveTab] = useState<'orders' | 'financials' | 'dispatch' | 'support'>('orders');
+  // Products & Inventory State (Phase 2 - P1.1 & P0.4)
+  const { 
+    products, 
+    variants, 
+    updateVariantStock, 
+    createProduct, 
+    updateProduct, 
+    deleteProduct, 
+    refreshProducts: refreshCatalogue 
+  } = useProducts();
 
-  // Filters & Search
+  // Active View Tab: 'orders' | 'financials' | 'dispatch' | 'inventory' | 'support'
+  const [activeTab, setActiveTab] = useState<'orders' | 'financials' | 'dispatch' | 'inventory' | 'support'>('orders');
+
+  // Filters & Search for Orders
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'pending' | 'gift_boxing' | 'dispatched' | 'delivered'>('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<'all' | 'card' | 'transfer' | 'pod'>('all');
+
+  // Filters & Search for Inventory
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [inventoryCategory, setInventoryCategory] = useState('all');
+  const [inventoryStockFilter, setInventoryStockFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
   
   // Modals
   const [selectedOrder, setSelectedOrder] = useState<StoreOrder | null>(null);
   const [waybillOrder, setWaybillOrder] = useState<StoreOrder | null>(null);
   const [verifySlipOrder, setVerifySlipOrder] = useState<StoreOrder | null>(null);
   const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [stockAdjustModal, setStockAdjustModal] = useState<{
+    variantId: string;
+    productName: string;
+    size: string;
+    currentStock: number;
+  } | null>(null);
+  const [stockDelta, setStockDelta] = useState<number>(5);
+  const [stockReason, setStockReason] = useState<string>('Restock Shipment Arrived');
+
+  // New Product Form State
+  const [newProdName, setNewProdName] = useState('');
+  const [newProdTagline, setNewProdTagline] = useState('');
+  const [newProdCategory, setNewProdCategory] = useState<ProductCategory>('dresses-partywear');
+  const [newProdGender, setNewProdGender] = useState<'girls' | 'boys' | 'unisex'>('girls');
+  const [newProdPrice, setNewProdPrice] = useState('28000');
+  const [newProdImage, setNewProdImage] = useState('https://images.unsplash.com/photo-1622290291468-a28f7a7dc6a8?q=80&w=800&auto=format&fit=crop');
+  const [newProdDesc, setNewProdDesc] = useState('Hand-tailored heirloom occasionwear with hand-stitched details.');
+  const [newProdFabric, setNewProdFabric] = useState('100% Breathable European Linen & Organic Cotton');
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
 
   // Manual Order Form State
   const [manualName, setManualName] = useState('');
   const [manualPhone, setManualPhone] = useState('');
   const [manualCity, setManualCity] = useState('Lagos - Island (Lekki, Ikoyi, VI)');
   const [manualAddress, setManualAddress] = useState('');
-  const [manualProductId, setManualProductId] = useState(DEMO_PRODUCTS[0]?.id || '');
+  const [manualProductId, setManualProductId] = useState(products[0]?.id || DEMO_PRODUCTS[0]?.id || '');
   const [manualSize, setManualSize] = useState('4Y');
   const [manualPaymentMethod, setManualPaymentMethod] = useState<'pod' | 'transfer' | 'card'>('transfer');
   const [manualPaymentStatus, setManualPaymentStatus] = useState<PaymentStatus>('paid');
@@ -199,9 +243,75 @@ export const AdminDemoPage: React.FC = () => {
   const pendingRevenue = useMemo(() => orders.filter((o) => o.paymentStatus === 'pending').reduce((sum, o) => sum + o.total, 0), [orders]);
   const avgOrderValue = useMemo(() => orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0, [orders, totalRevenue]);
 
+  // Inventory Metrics & Filtered List (Phase 2 - P1.1 & P0.4)
+  const filteredInventory = useMemo(() => {
+    return products.filter((prod) => {
+      if (inventoryCategory !== 'all' && prod.category !== inventoryCategory) return false;
+      if (inventoryStockFilter === 'in_stock' && prod.stockCount <= 0) return false;
+      if (inventoryStockFilter === 'low_stock' && (prod.stockCount <= 0 || prod.stockCount > 5)) return false;
+      if (inventoryStockFilter === 'out_of_stock' && prod.stockCount > 0) return false;
+
+      if (inventorySearch.trim()) {
+        const q = inventorySearch.toLowerCase();
+        const matchesName = prod.name.toLowerCase().includes(q);
+        const matchesCategory = (prod.categoryLabel || '').toLowerCase().includes(q);
+        const matchesTags = prod.tags.some((t) => t.toLowerCase().includes(q));
+        const prodVariants = variants[prod.id] || [];
+        const matchesSku = prodVariants.some((v) => v.sku.toLowerCase().includes(q));
+        return matchesName || matchesCategory || matchesTags || matchesSku;
+      }
+      return true;
+    });
+  }, [products, variants, inventoryCategory, inventoryStockFilter, inventorySearch]);
+
+  const totalInventoryPieces = useMemo(() => products.reduce((sum, p) => sum + p.stockCount, 0), [products]);
+  const lowStockCount = useMemo(() => products.filter((p) => p.stockCount > 0 && p.stockCount <= 5).length, [products]);
+  const outOfStockCount = useMemo(() => products.filter((p) => p.stockCount === 0).length, [products]);
+  const inventoryValuation = useMemo(() => products.reduce((sum, p) => sum + p.price * p.stockCount, 0), [products]);
+
+  const handleApplyStockAdjustment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stockAdjustModal) return;
+
+    await updateVariantStock(
+      stockAdjustModal.variantId,
+      stockDelta,
+      stockReason || 'Manual stock adjustment by Atelier Admin'
+    );
+    setStockAdjustModal(null);
+  };
+
+  const handleCreateNewProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProdName.trim()) return;
+    setIsCreatingProduct(true);
+
+    const priceNum = parseInt(newProdPrice, 10) || 25000;
+    await createProduct({
+      name: newProdName.trim(),
+      tagline: newProdTagline.trim(),
+      category: newProdCategory,
+      gender: newProdGender,
+      price: priceNum,
+      images: [newProdImage.trim()],
+      description: newProdDesc.trim(),
+      fabricDetails: newProdFabric.trim(),
+      initialSizes: [
+        { size: '4Y', stock: 6 },
+        { size: '5Y', stock: 6 },
+        { size: '6Y', stock: 6 },
+      ],
+    });
+
+    setIsCreatingProduct(false);
+    setIsAddProductOpen(false);
+    setNewProdName('');
+    setNewProdTagline('');
+  };
+
   const handleCreateManualOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    const prod = DEMO_PRODUCTS.find((p) => p.id === manualProductId) || DEMO_PRODUCTS[0];
+    const prod = products.find((p) => p.id === manualProductId) || products[0] || DEMO_PRODUCTS[0];
     if (!prod) return;
 
     addOrder({
@@ -580,6 +690,23 @@ export const AdminDemoPage: React.FC = () => {
         >
           <Truck className="w-3.5 h-3.5" />
           <span>Dispatch & Waybills</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('inventory')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            activeTab === 'inventory'
+              ? 'bg-boutique-charcoal text-white shadow-sm'
+              : 'bg-white/60 text-boutique-taupe hover:bg-white'
+          }`}
+        >
+          <Package className="w-3.5 h-3.5" />
+          <span>Atelier Stock & Catalogue ({products.length})</span>
+          {lowStockCount > 0 && (
+            <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center" title={`${lowStockCount} items have low stock`}>
+              {lowStockCount}
+            </span>
+          )}
         </button>
 
         <button
@@ -965,6 +1092,337 @@ export const AdminDemoPage: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ATELIER CATALOGUE & INVENTORY MANAGEMENT TAB (Phase 2 - P1.1 & P0.4) */}
+      {activeTab === 'inventory' && (
+        <div className="space-y-6">
+          
+          {/* Inventory Overview Header Strip */}
+          <div className="glass-panel rounded-3xl p-6 border border-white/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-accent/20 text-[#06281E]">
+                  <Package className="w-5 h-5 text-accent" />
+                </span>
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-boutique-charcoal">
+                    Atelier Catalogue & Live Stock Management
+                  </h3>
+                  <span className="text-[11px] text-boutique-taupe">
+                    Direct PostgreSQL sync with transactional inventory reservation and audit logging.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => refreshCatalogue()}
+                className="px-3.5 py-2 rounded-xl bg-white/80 hover:bg-white text-boutique-charcoal text-xs font-bold transition border border-gray-200 flex items-center gap-1.5 shadow-xs"
+                title="Refresh products and variants from database"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-boutique-taupe" />
+                <span>Sync DB</span>
+              </button>
+
+              <button
+                onClick={() => setIsAddProductOpen(true)}
+                className="btn-accent-primary px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Royal Garment</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Key Inventory Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="glass-panel rounded-2xl p-4 border border-white/80">
+              <span className="text-[10px] uppercase font-bold text-boutique-taupe tracking-wider block">
+                Garments Available
+              </span>
+              <span className="text-2xl font-serif font-bold text-boutique-charcoal tabular-nums mt-1 block">
+                {totalInventoryPieces} pcs
+              </span>
+              <span className="text-[11px] text-emerald-700 font-medium">Across {products.length} models</span>
+            </div>
+
+            <div className="glass-panel rounded-2xl p-4 border border-white/80">
+              <span className="text-[10px] uppercase font-bold text-boutique-taupe tracking-wider block">
+                Low Stock Warning
+              </span>
+              <span className="text-2xl font-serif font-bold text-amber-700 tabular-nums mt-1 block">
+                {lowStockCount} items
+              </span>
+              <span className="text-[11px] text-amber-600 font-medium">&le; 5 units remaining</span>
+            </div>
+
+            <div className="glass-panel rounded-2xl p-4 border border-white/80">
+              <span className="text-[10px] uppercase font-bold text-boutique-taupe tracking-wider block">
+                Sold Out
+              </span>
+              <span className="text-2xl font-serif font-bold text-rose-700 tabular-nums mt-1 block">
+                {outOfStockCount} items
+              </span>
+              <span className="text-[11px] text-rose-600 font-medium">Storefront purchase disabled</span>
+            </div>
+
+            <div className="glass-panel rounded-2xl p-4 border border-white/80">
+              <span className="text-[10px] uppercase font-bold text-boutique-taupe tracking-wider block">
+                Inventory Valuation
+              </span>
+              <span className="text-2xl font-serif font-bold text-[#06281E] tabular-nums mt-1 block">
+                {formatPrice(inventoryValuation)}
+              </span>
+              <span className="text-[11px] text-[#06281E]/70 font-medium">Retail stock value</span>
+            </div>
+          </div>
+
+          {/* Inventory Filters & Search Toolbar */}
+          <div className="glass-panel rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border border-white/80">
+            {/* Status Filter */}
+            <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto">
+              {[
+                { id: 'all', label: `All Garments (${products.length})` },
+                { id: 'in_stock', label: `In Stock (${products.filter((p) => p.stockCount > 5).length})` },
+                { id: 'low_stock', label: `Low Stock (${lowStockCount})` },
+                { id: 'out_of_stock', label: `Sold Out (${outOfStockCount})` },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setInventoryStockFilter(tab.id as typeof inventoryStockFilter)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    inventoryStockFilter === tab.id
+                      ? 'bg-boutique-charcoal text-white shadow-xs'
+                      : 'bg-white/60 text-boutique-taupe hover:bg-white hover:text-boutique-charcoal'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Category Dropdown & Search Input */}
+            <div className="flex items-center gap-2">
+              <select
+                value={inventoryCategory}
+                onChange={(e) => setInventoryCategory(e.target.value)}
+                className="px-3 py-2 text-xs bg-white/80 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent font-medium text-boutique-charcoal"
+              >
+                <option value="all">All Categories</option>
+                <option value="dresses-partywear">Royal Occasion & Partywear</option>
+                <option value="birthday">Sunday Best & Galas</option>
+                <option value="matching-sets">Heirloom Linen & Sets</option>
+                <option value="baby">Royal Toddlers (1–3 yrs)</option>
+              </select>
+
+              <div className="relative min-w-[220px]">
+                <input
+                  type="text"
+                  placeholder="Search piece, SKU, or tag..."
+                  value={inventorySearch}
+                  onChange={(e) => setInventorySearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-white/80 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Products & Variants List */}
+          <div className="space-y-4">
+            {filteredInventory.length === 0 ? (
+              <div className="glass-panel rounded-3xl p-12 text-center space-y-3 border border-white/80">
+                <Package className="w-10 h-10 text-boutique-taupe mx-auto" />
+                <h4 className="font-serif font-bold text-base text-boutique-charcoal">No Matching Garments</h4>
+                <p className="text-xs text-boutique-taupe">Try adjusting your filters or search terms.</p>
+              </div>
+            ) : (
+              filteredInventory.map((prod) => {
+                const prodVariants = variants[prod.id] || [];
+                const isLow = prod.stockCount > 0 && prod.stockCount <= 5;
+                const isOut = prod.stockCount === 0;
+
+                return (
+                  <div
+                    key={prod.id}
+                    className="glass-panel rounded-3xl p-5 border border-white/80 shadow-sm hover:shadow-md transition space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      {/* Left: Product Thumbnail & Info */}
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-20 rounded-2xl overflow-hidden bg-boutique-sand/40 flex-shrink-0 border border-gray-200 shadow-2xs">
+                          <img
+                            src={prod.images[0]}
+                            alt={prod.name}
+                            className="w-full h-full object-cover object-center"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] font-bold text-accent uppercase tracking-wider">
+                              #{prod.id}
+                            </span>
+                            <span className="text-[10px] uppercase font-bold text-boutique-taupe px-2 py-0.5 rounded-full bg-white/60 border border-gray-200/60">
+                              {prod.gender === 'girls' ? '👑 Princesses' : prod.gender === 'boys' ? '👑 Princes' : 'Unisex'}
+                            </span>
+                            {prod.isFeatured && (
+                              <span className="text-[9px] uppercase font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                Featured
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 className="font-serif font-bold text-base text-boutique-charcoal leading-tight">
+                            {prod.name}
+                          </h4>
+
+                          <p className="text-xs text-boutique-taupe line-clamp-1">
+                            {prod.tagline} • <span className="font-semibold text-boutique-charcoal">{formatPrice(prod.price)}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right: Total Stock Badge & Actions */}
+                      <div className="flex items-center gap-3 self-end sm:self-center">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
+                            isOut
+                              ? 'bg-rose-50 text-rose-800 border-rose-200'
+                              : isLow
+                              ? 'bg-amber-50 text-amber-800 border-amber-200'
+                              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${isOut ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                          <span>{isOut ? 'Sold Out' : isLow ? `Low Stock (${prod.stockCount})` : `${prod.stockCount} in Stock`}</span>
+                        </span>
+
+                        <button
+                          onClick={async () => {
+                            await updateProduct(prod.id, { isFeatured: !prod.isFeatured });
+                          }}
+                          className={`p-2 rounded-xl border text-xs font-bold transition ${
+                            prod.isFeatured
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                              : 'bg-white/80 text-boutique-taupe border-gray-200 hover:bg-white'
+                          }`}
+                          title="Toggle Featured on Storefront"
+                        >
+                          ★
+                        </button>
+
+                        <button
+                          onClick={async () => {
+                            if (confirm(`Remove "${prod.name}" from catalogue?`)) {
+                              await deleteProduct(prod.id);
+                            }
+                          }}
+                          className="p-2 rounded-xl bg-white/80 text-gray-400 hover:text-rose-600 hover:bg-rose-50 border border-gray-200 transition"
+                          title="Delete Garment"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Size Variants & Live Stock Controls */}
+                    <div className="pt-3 border-t border-gray-200/60">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-bold text-boutique-charcoal uppercase tracking-wider flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5 text-accent" />
+                          <span>Size Variants & Real-Time Stock Units</span>
+                        </span>
+                        <span className="text-[10px] text-boutique-taupe">
+                          Click + or - to record transactional stock changes instantly
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                        {prodVariants.length > 0 ? (
+                          prodVariants.map((v) => (
+                            <div
+                              key={v.id}
+                              className="p-2.5 rounded-2xl bg-white/70 border border-gray-200/80 shadow-2xs space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-xs text-boutique-charcoal">{v.size}</span>
+                                <span className={`text-[10px] font-bold ${v.stock_count <= 2 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                                  {v.stock_count} pcs
+                                </span>
+                              </div>
+                              <span className="block text-[8px] font-mono text-boutique-taupe truncate" title={v.sku}>
+                                {v.sku}
+                              </span>
+
+                              {/* Stepper Controls */}
+                              <div className="flex items-center justify-between gap-1 pt-1 border-t border-gray-100">
+                                <button
+                                  disabled={v.stock_count <= 0}
+                                  onClick={async () => {
+                                    await updateVariantStock(v.id, -1, 'Quick admin reduction');
+                                  }}
+                                  className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold flex items-center justify-center transition"
+                                  title="Decrease by 1"
+                                >
+                                  -
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setStockAdjustModal({
+                                      variantId: v.id,
+                                      productName: prod.name,
+                                      size: v.size,
+                                      currentStock: v.stock_count,
+                                    });
+                                    setStockDelta(5);
+                                    setStockReason('Shipment Restock Received');
+                                  }}
+                                  className="text-[9px] font-bold text-accent hover:underline px-1"
+                                  title="Audit / Custom Restock"
+                                >
+                                  Audit
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    await updateVariantStock(v.id, 1, 'Quick admin restock');
+                                  }}
+                                  className="w-6 h-6 rounded-lg bg-accent/20 hover:bg-accent/40 text-[#06281E] text-xs font-bold flex items-center justify-center transition"
+                                  title="Increase by 1"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          prod.availableSizes.map((size) => (
+                            <div
+                              key={size}
+                              className="p-2.5 rounded-2xl bg-white/70 border border-gray-200/80 shadow-2xs space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-xs text-boutique-charcoal">{size}</span>
+                                <span className="text-[10px] font-bold text-emerald-700">
+                                  {Math.round(prod.stockCount / prod.availableSizes.length)} pcs
+                                </span>
+                              </div>
+                              <span className="block text-[8px] font-mono text-boutique-taupe">
+                                SKU-{prod.id.toUpperCase()}-{size}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}
@@ -1392,7 +1850,7 @@ export const AdminDemoPage: React.FC = () => {
                     onChange={(e) => setManualProductId(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-boutique-rose"
                   >
-                    {DEMO_PRODUCTS.map((prod) => (
+                    {products.map((prod) => (
                       <option key={prod.id} value={prod.id}>
                         {prod.name} ({formatPrice(prod.price)})
                       </option>
@@ -1448,6 +1906,223 @@ export const AdminDemoPage: React.FC = () => {
                   type="button"
                   onClick={() => setIsManualOrderOpen(false)}
                   className="py-2.5 px-5 rounded-xl bg-gray-100 text-boutique-charcoal font-bold text-xs hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* STOCK AUDIT ADJUSTMENT MODAL (Phase 2 - P0.4) */}
+      {stockAdjustModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-200 space-y-4 text-boutique-charcoal text-xs">
+            <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-accent tracking-wider block">
+                  Transactional Stock Audit
+                </span>
+                <h3 className="font-serif text-lg font-bold">
+                  {stockAdjustModal.productName}
+                </h3>
+                <span className="text-xs text-boutique-taupe">
+                  Size: <strong className="text-boutique-charcoal">{stockAdjustModal.size}</strong> • Current Stock: <strong className="text-emerald-700">{stockAdjustModal.currentStock} units</strong>
+                </span>
+              </div>
+              <button
+                onClick={() => setStockAdjustModal(null)}
+                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleApplyStockAdjustment} className="space-y-3.5">
+              <div>
+                <label className="block font-bold mb-1">
+                  Quantity Adjustment (+ to add stock, - to remove)
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={stockDelta}
+                  onChange={(e) => setStockDelta(parseInt(e.target.value, 10) || 0)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
+                  placeholder="+5 or -2"
+                />
+                <span className="text-[10px] text-boutique-taupe mt-1 block">
+                  Projected New Stock: <strong className="text-boutique-charcoal">{Math.max(0, stockAdjustModal.currentStock + stockDelta)} units</strong>
+                </span>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">Audit Log Reason</label>
+                <select
+                  value={stockReason}
+                  onChange={(e) => setStockReason(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  <option value="Restock Shipment Arrived">Restock Shipment Arrived from Tailor</option>
+                  <option value="Physical Inventory Reconciliation">Physical Inventory Count Reconciliation</option>
+                  <option value="Walk-in Offline Purchase">Walk-in Offline Storefront Sale</option>
+                  <option value="Damaged / Fabric Defect Written Off">Damaged / Fabric Defect Written Off</option>
+                  <option value="Client VIP Fitting Reservation">Client VIP Fitting Reservation</option>
+                </select>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="submit"
+                  className="flex-1 btn-accent-primary py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-xs"
+                >
+                  Commit Inventory Movement
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStockAdjustModal(null)}
+                  className="py-2.5 px-4 rounded-xl bg-gray-100 text-boutique-charcoal font-bold text-xs hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD ROYAL PRODUCT MODAL (Phase 2 - P1.1) */}
+      {isAddProductOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-xl bg-white rounded-3xl p-6 shadow-2xl border border-gray-200 space-y-4 text-boutique-charcoal text-xs max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-accent tracking-wider block flex items-center gap-1">
+                  <Crown className="w-3.5 h-3.5 text-accent" />
+                  <span>New Atelier Creation</span>
+                </span>
+                <h3 className="font-serif text-xl font-bold">
+                  Add Royal Garment to Live Catalogue
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsAddProductOpen(false)}
+                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNewProductSubmit} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">Garment Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Royal Emerald Silk Ballerina Gown"
+                    value={newProdName}
+                    onChange={(e) => setNewProdName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Price (₦ Naira)</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="28000"
+                    value={newProdPrice}
+                    onChange={(e) => setNewProdPrice(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">Tagline</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Hand-embroidered champagne gold roses with tiered organza"
+                  value={newProdTagline}
+                  onChange={(e) => setNewProdTagline(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">Category</label>
+                  <select
+                    value={newProdCategory}
+                    onChange={(e) => setNewProdCategory(e.target.value as ProductCategory)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent"
+                  >
+                    <option value="dresses-partywear">Royal Occasion & Partywear</option>
+                    <option value="birthday">Sunday Best & Galas</option>
+                    <option value="matching-sets">Heirloom Linen & Sets</option>
+                    <option value="baby">Royal Toddlers (1–3 yrs)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Gender</label>
+                  <select
+                    value={newProdGender}
+                    onChange={(e) => setNewProdGender(e.target.value as 'girls' | 'boys' | 'unisex')}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent"
+                  >
+                    <option value="girls">Royal Princesses</option>
+                    <option value="boys">Young Princes</option>
+                    <option value="unisex">Unisex Heirloom</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">Image URL</label>
+                <input
+                  type="url"
+                  required
+                  value={newProdImage}
+                  onChange={(e) => setNewProdImage(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent font-mono text-[11px]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">Fabric & Craftsmanship Details</label>
+                <input
+                  type="text"
+                  value={newProdFabric}
+                  onChange={(e) => setNewProdFabric(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={newProdDesc}
+                  onChange={(e) => setNewProdDesc(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="submit"
+                  disabled={isCreatingProduct}
+                  className="flex-1 btn-accent-primary py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{isCreatingProduct ? 'Publishing to DB...' : 'Publish to Storefront & DB'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddProductOpen(false)}
+                  className="py-2.5 px-4 rounded-xl bg-gray-100 text-boutique-charcoal font-bold text-xs hover:bg-gray-200 transition"
                 >
                   Cancel
                 </button>

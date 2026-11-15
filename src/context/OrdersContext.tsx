@@ -300,6 +300,29 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               total: it.product.price * it.quantity,
             }))
           );
+
+          // P0.4: Atomically decrement variant stock and log inventory movement
+          for (const it of newOrder.items) {
+            try {
+              const { data: variantData } = await supabase
+                .from('product_variants')
+                .select('id')
+                .eq('product_id', it.product.id)
+                .eq('size', it.selectedSize)
+                .maybeSingle();
+
+              if (variantData?.id) {
+                await supabase.rpc('record_stock_movement' as any, {
+                  p_variant_id: variantData.id,
+                  p_quantity_change: -it.quantity,
+                  p_reason: `Customer Order Reservation #${newOrder.id}`,
+                  p_order_id: newOrder.id,
+                });
+              }
+            } catch (stockErr) {
+              console.warn('Inventory reservation warning:', stockErr);
+            }
+          }
         }
 
         await logAuditEvent('CREATE_ORDER', 'orders', newOrder.id, {
@@ -338,6 +361,30 @@ export const OrdersProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         await supabase.from('orders').update({ fulfillment_status: status }).eq('id', orderId);
         await logAuditEvent('UPDATE_FULFILLMENT_STATUS', 'orders', orderId, { status });
+
+        // If cancelled, automatically restore reserved stock
+        if (status === 'cancelled') {
+          const cancelledOrder = orders.find((o) => o.id === orderId);
+          if (cancelledOrder?.items) {
+            for (const it of cancelledOrder.items) {
+              const { data: variantData } = await supabase
+                .from('product_variants')
+                .select('id')
+                .eq('product_id', it.product.id)
+                .eq('size', it.selectedSize)
+                .maybeSingle();
+
+              if (variantData?.id) {
+                await supabase.rpc('record_stock_movement' as any, {
+                  p_variant_id: variantData.id,
+                  p_quantity_change: it.quantity,
+                  p_reason: `Order #${orderId} Cancelled - Inventory Restocked`,
+                  p_order_id: orderId,
+                });
+              }
+            }
+          }
+        }
       } catch (err) {
         console.warn('PostgreSQL updateFulfillmentStatus error:', err);
       }

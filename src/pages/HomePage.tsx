@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight, ShieldCheck, Truck, Sparkles, Gift, Crown } from 'lucide-react';
-import { DEMO_PRODUCTS } from '../data/products';
+import { useProducts } from '../context/ProductsContext';
 import { ProductCard } from '../components/product/ProductCard';
 
 export const HomePage: React.FC = () => {
-  const featuredProducts = DEMO_PRODUCTS.filter((p) => p.isFeatured).slice(0, 4);
-  const newArrivals = DEMO_PRODUCTS.filter((p) => p.isNewArrival).slice(0, 4);
+  const { products } = useProducts();
+  const featuredProducts = products.filter((p) => p.isFeatured).slice(0, 4);
+  const newArrivals = products.filter((p) => p.isNewArrival).slice(0, 4);
 
   return (
     <div className="space-y-16 sm:space-y-24 pb-16">
@@ -274,7 +275,7 @@ export const HomePage: React.FC = () => {
             to="/shop"
             className="text-xs font-bold uppercase tracking-wider text-accent hover:text-accent-hover flex items-center gap-1.5"
           >
-            <span>View All ({DEMO_PRODUCTS.length}) Outfits</span>
+            <span>View All ({products.length}) Outfits</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>

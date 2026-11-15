@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, X, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
-import { DEMO_PRODUCTS, CATEGORIES_LIST, AGE_RANGES, SIZES_LIST, GENDER_FILTERS } from '../data/products';
+import { CATEGORIES_LIST, AGE_RANGES, SIZES_LIST, GENDER_FILTERS } from '../data/products';
+import { useProducts } from '../context/ProductsContext';
 import { ProductCard } from '../components/product/ProductCard';
 
 export const ShopPage: React.FC = () => {
+  const { products } = useProducts();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialGender = searchParams.get('gender') || (searchParams.get('category') === 'girls' ? 'girls' : searchParams.get('category') === 'boys' ? 'boys' : 'all');
@@ -96,7 +98,7 @@ export const ShopPage: React.FC = () => {
   };
 
   const filteredProducts = useMemo(() => {
-    return DEMO_PRODUCTS.filter((product) => {
+    return products.filter((product) => {
       // 1. Strict gender filter
       if (selectedGender === 'girls') {
         if (product.gender !== 'girls' && product.gender !== 'unisex') return false;
@@ -144,7 +146,7 @@ export const ShopPage: React.FC = () => {
       if (sortBy === 'newest') return (b.isNewArrival ? 1 : 0) - (a.isNewArrival ? 1 : 0);
       return 0;
     });
-  }, [selectedGender, selectedCategory, selectedAge, selectedSize, priceTier, searchQuery, sortBy]);
+  }, [products, selectedGender, selectedCategory, selectedAge, selectedSize, priceTier, searchQuery, sortBy]);
 
   const activeFiltersCount = (selectedGender !== 'all' ? 1 : 0) +
     (selectedCategory !== 'all' ? 1 : 0) +
